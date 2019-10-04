@@ -6,12 +6,14 @@ import os
 import traceback
 
 def proofstate(f_dat, f_pos, f_neg, hashing=None):
+   offset = 3 * hashing if hashing else 0
    def parse(clause):
       clause = clause[clause.rindex("proofvector")+12:].rstrip(",\n").strip().split(",")
       clause = [x.split("(")[0].split(":") for x in clause if x]
       if not hashing:
          clause = ["$%s/%s"%tuple(x) for x in clause if x]
       else:
+         clause = [(offset + int(x[0]), x[1]) for x in clause if x]
          clause = ["%s:%s"%tuple(x) for x in clause if x]
       return " ".join(clause)
    dat = open(f_dat).read().strip().split("\n")
@@ -22,6 +24,34 @@ def proofstate(f_dat, f_pos, f_neg, hashing=None):
       i += 1
    for neg in open(f_neg):
       dat[i] += " "+parse(neg)
+      i += 1
+   if i != len(dat):
+      raise Exception("File %s does not match files %s and %s!" % (f_dat,f_pos,f_neg))
+   open(f_dat, "w").write("\n".join(dat))
+
+def processsedstate(f_dat, f_pos, f_neg, hashing=None):
+   offset = 2 * hashing if hashing else 0
+   def parse(clause):
+      if "processedvector" in clause:
+          clause = clause[clause.rindex("processedvector")+15:].rstrip(",\n").strip().split(",")
+          clause = [x.split(":") for x in clause if x]
+          if not hashing:
+             clause = ["&%s/%s"%tuple(x) for x in clause if x] # I hope this & isn't used elsewhere...
+          else:
+
+             clause = [(offset + int(x[0]), x[1]) for x in clause if x]
+             clause = ["%s:%s"%tuple(x) for x in clause if x]
+          return " " + " ".join(clause)
+      else:
+          return ""
+   dat = open(f_dat).read().strip().split("\n")
+   dat = [x for x in dat if x]
+   i = 0
+   for pos in open(f_pos):
+      dat[i] += parse(pos)
+      i += 1
+   for neg in open(f_neg):
+      dat[i] += parse(neg)
       i += 1
    if i != len(dat):
       raise Exception("File %s does not match files %s and %s!" % (f_dat,f_pos,f_neg))
@@ -64,7 +94,7 @@ def prepare1(job):
       ##subprocess.call(["eprover", "--free-numbers", "--cnf", "--no-preprocessing", f_sol], stdout=prf)
       #prf.close()
       #os.system("cat %s | grep '^cnf' >> %s" % (f_prf, f_pos))
-   
+
    f_dat = expres.results.path(bid, pid, problem, limit, ext="in" if hashing else "pre")
    f_map = expres.results.path(bid, pid, problem, limit, ext="map")
    os.system("mkdir -p %s" % os.path.dirname(f_dat))
@@ -82,6 +112,8 @@ def prepare1(job):
       out.close()
       if "W" in version:
          proofstate(f_dat, f_pos, f_neg, hashing)
+      if "p" in version: # TODO: make proofstate and processedstate compatible with each other
+         processsedstate(f_dat, f_pos, f_neg, hashing)
 
 def prepare(rkeys, version, force=False, cores=1, hashing=None):
    pool = Pool(cores)
@@ -106,7 +138,7 @@ def translate(f_cnf, f_conj, f_out):
    out = open(f_out, "w")
    if not f_conj:
       subprocess.call(["enigma-features", "--free-numbers", f_cnf], stdout=out)
-   else:   
+   else:
       f_empty = "empty.tmp"
       os.system("rm -fr %s" % f_empty)
       os.system("touch %s" % f_empty)
@@ -132,4 +164,3 @@ def make(rkeys, out=None, hashing=None):
       bar.next()
    bar.finish()
    return dat if not out else None
-

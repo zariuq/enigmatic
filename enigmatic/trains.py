@@ -46,8 +46,18 @@ def proofstate(ftrs, vector, offset, hashing=None):
          continue
       vector[offset+num] = val
 
+def processedstate(ftrs, vector, offset, hashing=None):
+ for ftr in ftrs:
+    if not ftr.startswith("&"):
+       continue
+    (num, val) = ftr[1:].split("/")
+    (num, val) = (int(num), float(val))
+    if not val:
+       continue
+    vector[offset+num] = val
+
 def string(sign, vector):
-   ftrs = ["%s:%s"%(fid,vector[fid]) for fid in sorted(vector)] 
+   ftrs = ["%s:%s"%(fid,vector[fid]) for fid in sorted(vector)]
    ftrs = "%s %s"%(PREFIX[sign], " ".join(ftrs))
    return ftrs
 
@@ -63,7 +73,8 @@ def encode(pr, emap, strict=True):
    conjs = conj.strip().split(" ")
    base = emap if isinstance(emap,int) else len(emap)
    count(conjs, vector, emap, base, strict)
-   proofstate(conjs, vector, 2*base, emap)
+   processedstate(conjs, vector, 2*base, emap) # Should not exceed the number of features in emap
+   proofstate(conjs, vector, 3*base, emap)
    #vector = normalize(vector)
    return string(sign, vector)
 
@@ -93,4 +104,3 @@ def boost(f_in, f_out, out, method="WRONG:POS"):
       if cls == CLS and cls != int(predicted):
          out.write(correct)
          out.write("\n")
-
