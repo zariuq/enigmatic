@@ -8,7 +8,8 @@ import traceback
 def proofstate(f_dat, f_pos, f_neg, hashing=None):
    offset = 3 * hashing if hashing else 0
    def parse(clause):
-      clause = clause[clause.rindex("proofvector")+12:].rstrip(",\n").strip().split(",")
+      vector_end = clause.rindex("processedvector") - 1 if "processedvector" in clause else -1
+      clause = clause[clause.rindex("proofvector")+12:vector_end].rstrip(",\n").strip().split(",")
       clause = [x.split("(")[0].split(":") for x in clause if x]
       if not hashing:
          clause = ["$%s/%s"%tuple(x) for x in clause if x]
