@@ -12,6 +12,8 @@ def proofstate(f_dat, f_pos, f_neg, hashing=None):
       if not hashing:
          clause = ["$%s/%s"%tuple(x) for x in clause if x]
       else:
+         print(f_dat)
+         print(clause)
          clause = ["%s:%s"%tuple(x) for x in clause if x]
       return " ".join(clause)
    dat = open(f_dat).read().strip().split("\n")
