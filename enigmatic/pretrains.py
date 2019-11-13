@@ -69,18 +69,14 @@ def prepare2(job):
 def prepare1(job):
    (bid,pid,problem,limit,version,force,hashing,queue) = job
 
-   f_problem = expres.benchmarks.path(bid, problem)
-   f_cnf = expres.benchmarks.path(os.path.join(bid,"cnf"), problem)
-   if not os.path.isfile(f_cnf):
-      open(f_cnf, "wb").write(eprover.runner.cnf(f_problem))
 
    result = None
    #result = rkeys[(bid,pid,problem,limit)]
    f_pos = expres.results.path(bid, pid, problem, limit, ext="pos")
    f_neg = expres.results.path(bid, pid, problem, limit, ext="neg")
-   os.system("mkdir -p %s" % os.path.dirname(f_pos))
-   os.system("mkdir -p %s" % os.path.dirname(f_neg))
    if force or (not (os.path.isfile(f_pos) and os.path.isfile(f_neg))):
+      os.system("mkdir -p %s" % os.path.dirname(f_pos))
+      os.system("mkdir -p %s" % os.path.dirname(f_neg))
       result = expres.results.load(bid, pid, problem, limit, trains=True, proof=True)
       if force or not os.path.isfile(f_pos):
          open(f_pos, "w").write("\n".join(result["POS"]))
@@ -97,10 +93,16 @@ def prepare1(job):
       #os.system("cat %s | grep '^cnf' >> %s" % (f_prf, f_pos))
 
    f_dat = expres.results.path(bid, pid, problem, limit, ext="in" if hashing else "pre")
-   f_map = expres.results.path(bid, pid, problem, limit, ext="map")
-   os.system("mkdir -p %s" % os.path.dirname(f_dat))
-   os.system("mkdir -p %s" % os.path.dirname(f_map))
    if force or not os.path.isfile(f_dat):
+      f_cnf = expres.benchmarks.path(os.path.join(bid,"cnf"), problem)
+      if not os.path.isfile(f_cnf):
+        f_problem = expres.benchmarks.path(bid, problem)
+        open(f_cnf, "wb").write(eprover.runner.cnf(f_problem))
+    
+      f_map = expres.results.path(bid, pid, problem, limit, ext="map")
+      
+      os.system("mkdir -p %s" % os.path.dirname(f_dat))
+      os.system("mkdir -p %s" % os.path.dirname(f_map))
       out = open(f_dat, "w")
       if not hashing:
          subprocess.call(["enigma-features", "--free-numbers", "--enigma-features=%s"%version, \
