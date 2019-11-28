@@ -4,6 +4,26 @@ import subprocess
 from pyprove import expres, eprover
 import os
 import traceback
+import re
+
+pat1 = re.compile("parent1 (cnf.*\)\.) #")
+pat2 = re.compile("parent2 (cnf.*\)\.) #")
+
+def extract_parents(result):
+    parents = []
+    for clause in result:
+        tmp = clause[:clause.index('#')]
+        parent1 = pat1.search(clause)
+        if parent1:
+            parents.append(parent1.group(1))
+        else:
+            parents.append(tmp)
+        parent2 = pat2.search(clause)
+        if parent2:
+            parents.append(parent2.group(1))
+        else:
+            parents.append(tmp)
+    return parents
 
 def proofstate(f_dat, f_pos, f_neg, hashing=None):
    offset = 3 * hashing if hashing else 0
@@ -78,14 +98,22 @@ def prepare1(job):
    #result = rkeys[(bid,pid,problem,limit)]
    f_pos = expres.results.path(bid, pid, problem, limit, ext="pos")
    f_neg = expres.results.path(bid, pid, problem, limit, ext="neg")
+   f_ppos = expres.results.path(bid, pid, problem, limit, ext="ppos")
+   f_pneg = expres.results.path(bid, pid, problem, limit, ext="pneg")
    os.system("mkdir -p %s" % os.path.dirname(f_pos))
    os.system("mkdir -p %s" % os.path.dirname(f_neg))
    if force or (not (os.path.isfile(f_pos) and os.path.isfile(f_neg))):
       result = expres.results.load(bid, pid, problem, limit, trains=True, proof=True)
+      pos_parents = extract_parents(result["POS"])
+      neg_parents = extract_parents(result["NEG"])
       if force or not os.path.isfile(f_pos):
          open(f_pos, "w").write("\n".join(result["POS"]))
       if force or not os.path.isfile(f_neg):
          open(f_neg, "w").write("\n".join(result["NEG"]))
+      if force or not os.path.isfile(f_ppos):
+         open(f_ppos, "w").write("\n".join(pos_parents))
+      if force or not os.path.isfile(f_pneg):
+         open(f_pneg, "w").write("\n".join(neg_parents))
       # extract additional positive samples from the proof
       #f_sol = expres.results.path(bid, pid, problem, limit, ext="sol")
       #open(f_sol, "w").write("\n".join(result["PROOF"]))
