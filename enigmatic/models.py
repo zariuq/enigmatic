@@ -144,6 +144,10 @@ def check(settings):
       settings["results"] = {}
    if "ramdisk" not in settings:
       settings["ramdisk"] = None
+   if "coop" not in settings:
+      settings["coop"] = True
+   if "no history" not in settings:
+      settings["no history"] = False
 
 def update(results, only=None, **others):
    if only:
@@ -170,9 +174,14 @@ def loop(model, settings, nick=None):
    efun = settings["learner"].efun()
    new = [
       protos.solo(settings["pids"][0], model, mult=0, noinit=True, efun=efun),
-      protos.coop(settings["pids"][0], model, mult=0, noinit=True, efun=efun)
    ]
+   if settings["coop"]:
+      new.append(protos.coop(settings["pids"][0], model, mult=0, noinit=True, efun=efun))
    settings["pids"].extend(new)
+
+   if settings["no history"]:
+       for i in range(len(new)):
+           settings["pids"].pop(0)
 
    if settings["ramdisk"]:
       os.system("mkdir -p %s" % ENIGMA_ROOT)
