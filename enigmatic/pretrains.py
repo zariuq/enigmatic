@@ -25,8 +25,19 @@ def extract_parents(result):
             parents.append(tmp)
     return parents
 
+def unpack_parents(result):
+    examples = []
+    for clause in result:
+        tmp = clause[:clause.index('#')]
+        parent1 = pat1.search(clause)
+        parent1 = parent1.group(1) if parent1 else tmp
+        parent2 = pat2.search(clause)
+        parent2 = parent2.group(1) if parent2 else tmp
+        examples.extend([tmp, parent1, parent2])
+    return examples
+
 def proofstate(f_dat, f_pos, f_neg, hashing=None):
-   offset = 3 * hashing if hashing else 0
+   offset = 5 * hashing if hashing else 0
    def parse(clause):
       vector_end = clause.rindex("processedvector") - 1 if "processedvector" in clause else -1
       clause = clause[clause.rindex("proofvector")+12:vector_end].rstrip(",\n").strip().split(",")
@@ -51,7 +62,7 @@ def proofstate(f_dat, f_pos, f_neg, hashing=None):
    open(f_dat, "w").write("\n".join(dat))
 
 def processsedstate(f_dat, f_pos, f_neg, hashing=None):
-   offset = 2 * hashing if hashing else 0
+   offset = 4 * hashing if hashing else 0
    def parse(clause):
       if "processedvector" in clause:
           clause = clause[clause.rindex("processedvector")+15:].rstrip(",\n").strip().split(",")
@@ -100,16 +111,29 @@ def prepare1(job):
       os.system("mkdir -p %s" % os.path.dirname(f_pos))
       #os.system("mkdir -p %s" % os.path.dirname(f_neg)) # In our case, they're always the same
       result = expres.results.load(bid, pid, problem, limit, trains=True, proof=True)
-      pos_parents = extract_parents(result["POS"])
-      neg_parents = extract_parents(result["NEG"])
-      if force or not os.path.isfile(f_pos):
-         open(f_pos, "w").write("\n".join(result["POS"]))
-      if force or not os.path.isfile(f_neg):
-         open(f_neg, "w").write("\n".join(result["NEG"]))
-      if force or not os.path.isfile(f_ppos):
-         open(f_ppos, "w").write("\n".join(pos_parents))
-      if force or not os.path.isfile(f_pneg):
-         open(f_pneg, "w").write("\n".join(neg_parents))
+      #pos_parents = extract_parents(result["POS"])
+      #neg_parents = extract_parents(result["NEG"])
+      if "R" in version:
+          print("\ntest\n")
+          e_pos = unpack_parents(result["POS"])
+          e_neg = unpack_parents(result["NEG"])
+          if force or not os.path.isfile(f_pos):
+             open(f_pos, "w").write("\n".join(e_pos))
+          if force or not os.path.isfile(f_neg):
+             open(f_neg, "w").write("\n".join(e_neg))
+          #if force or not os.path.isfile(f_ppos):
+            # open(f_ppos, "w").write("\n".join(result["POS"]))
+          #if force or not os.path.isfile(f_pneg):
+            # open(f_pneg, "w").write("\n".join(result["NEG"]))
+      else:
+          if force or not os.path.isfile(f_pos):
+             open(f_pos, "w").write("\n".join(result["POS"]))
+          if force or not os.path.isfile(f_neg):
+             open(f_neg, "w").write("\n".join(result["NEG"]))
+      #if force or not os.path.isfile(f_ppos):
+      #  open(f_ppos, "w").write("\n".join(pos_parents))
+      #if force or not os.path.isfile(f_pneg):
+      #  open(f_pneg, "w").write("\n".join(neg_parents))
       # extract additional positive samples from the proof
       #f_sol = expres.results.path(bid, pid, problem, limit, ext="sol")
       #open(f_sol, "w").write("\n".join(result["PROOF"]))
@@ -119,6 +143,7 @@ def prepare1(job):
       ##subprocess.call(["eprover", "--free-numbers", "--cnf", "--no-preprocessing", f_sol], stdout=prf)
       #prf.close()
       #os.system("cat %s | grep '^cnf' >> %s" % (f_prf, f_pos))
+
 
    f_dat = expres.results.path(bid, pid, problem, limit, ext="in" if hashing else "pre")
    if force or not os.path.isfile(f_dat):
