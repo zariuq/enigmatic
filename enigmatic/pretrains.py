@@ -114,7 +114,6 @@ def prepare1(job):
       #pos_parents = extract_parents(result["POS"])
       #neg_parents = extract_parents(result["NEG"])
       if "R" in version:
-          print("\ntest\n")
           e_pos = unpack_parents(result["POS"])
           e_neg = unpack_parents(result["NEG"])
           if force or not os.path.isfile(f_pos):
