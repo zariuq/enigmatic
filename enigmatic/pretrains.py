@@ -33,30 +33,39 @@ def unpack_parents(result):
         parent1 = parent1.group(1) if parent1 else tmp
         parent2 = pat2.search(clause)
         parent2 = parent2.group(1) if parent2 else tmp
+        if "proofvector" in clause:
+            tmp += clause[clause.rindex("proofvector")+12:-1]
         examples.extend([tmp, parent1, parent2])
     return examples
 
 def proofstate(f_dat, f_pos, f_neg, hashing=None):
    offset = 5 * hashing if hashing else 0
    def parse(clause):
-      vector_end = clause.rindex("processedvector") - 1 if "processedvector" in clause else -1
-      clause = clause[clause.rindex("proofvector")+12:vector_end].rstrip(",\n").strip().split(",")
-      clause = [x.split("(")[0].split(":") for x in clause if x]
-      if not hashing:
-         clause = ["$%s/%s"%tuple(x) for x in clause if x]
+      if "proofvector" in clause:
+          vector_end = clause.rindex("processedvector") - 1 if "processedvector" in clause else -1
+          clause = clause[clause.rindex("proofvector")+12:vector_end].rstrip(",\n").strip().split(",")
+          clause = [x.split("(")[0].split(":") for x in clause if x]
+          if not hashing:
+             clause = ["$%s/%s"%tuple(x) for x in clause if x]
+          else:
+             clause = [(offset + int(x[0]), x[1]) for x in clause if x]
+             clause = ["%s:%s"%tuple(x) for x in clause if x]
+          return " ".join(clause)
       else:
-         clause = [(offset + int(x[0]), x[1]) for x in clause if x]
-         clause = ["%s:%s"%tuple(x) for x in clause if x]
-      return " ".join(clause)
+          return None
    dat = open(f_dat).read().strip().split("\n")
    dat = [x for x in dat if x]
    i = 0
    for pos in open(f_pos):
-      dat[i] += " "+parse(pos)
-      i += 1
+      pdat = parse(pos)
+      if pdat:
+          dat[i] += " "+pdat
+          i += 1
    for neg in open(f_neg):
-      dat[i] += " "+parse(neg)
-      i += 1
+      pdat = parse(neg)
+      if pdat:
+          dat[i] += " "+pdat
+          i += 1
    if i != len(dat):
       raise Exception("File %s does not match files %s and %s!" % (f_dat,f_pos,f_neg))
    open(f_dat, "w").write("\n".join(dat))
