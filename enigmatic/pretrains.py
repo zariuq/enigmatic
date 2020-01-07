@@ -34,7 +34,7 @@ def unpack_parents(result):
         parent2 = pat2.search(clause)
         parent2 = parent2.group(1) if parent2 else tmp
         if "proofvector" in clause:
-            tmp += clause[clause.rindex("proofvector")+12:-1]
+            tmp += clause[clause.rindex("proofvector"):-1]
         examples.extend([tmp, parent1, parent2])
     return examples
 
@@ -67,7 +67,7 @@ def proofstate(f_dat, f_pos, f_neg, hashing=None):
           dat[i] += " "+pdat
           i += 1
    if i != len(dat):
-      raise Exception("File %s does not match files %s and %s!" % (f_dat,f_pos,f_neg))
+      raise Exception("File %s (%d) does not match files %s and %s (%d)!" % (f_dat, len(dat),f_pos,f_neg, i))
    open(f_dat, "w").write("\n".join(dat))
 
 def processsedstate(f_dat, f_pos, f_neg, hashing=None):
