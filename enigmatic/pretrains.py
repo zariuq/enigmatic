@@ -6,22 +6,24 @@ import os
 import traceback
 import re
 
-pat1 = re.compile("parent1 (cnf.*\)\.) #")
-pat2 = re.compile("parent2 (cnf.*\)\.) #")
+pat1 = re.compile("parent1 (cnf.*?\)\.) #train")
+pat2 = re.compile("(cnf.*\)\.)\s+#parent2 (cnf.*\)\.)")
 
 def extract_parents(result):
     parents = []
     for clause in result:
         tmp = clause[:clause.index('#')]
-        parent1 = pat1.search(clause)
+        parentr0 = pat1.search(clause)
         if parent1:
-            parents.append(parent1.group(1))
+            parentr1 = pat2.search(parentr0.group(1))
+            if parentr1:
+                parents.append(parentr1.group(1))
+                parents.append(parentr1.group(2))
+            else:
+                parents.append(parentr0.group(1))
+                parents.append(tmp)
         else:
             parents.append(tmp)
-        parent2 = pat2.search(clause)
-        if parent2:
-            parents.append(parent2.group(1))
-        else:
             parents.append(tmp)
     return parents
 
@@ -34,7 +36,7 @@ def unpack_parents(result):
         parent2 = pat2.search(clause)
         parent2 = parent2.group(1) if parent2 else tmp
         if "proofvector" in clause:
-            tmp += clause[clause.rindex("proofvector"):-1]
+            tmp += clause[clause.rindex("#proofvector"):-1]
         examples.extend([tmp, parent1, parent2])
     return examples
 
@@ -126,18 +128,18 @@ def prepare1(job):
           e_pos = unpack_parents(result["POS"])
           e_neg = unpack_parents(result["NEG"])
           if force or not os.path.isfile(f_pos):
-             open(f_pos, "w").write("\n".join(e_pos))
+             open(f_pos, "w").write("\n".join(e_pos)+"\n")
           if force or not os.path.isfile(f_neg):
-             open(f_neg, "w").write("\n".join(e_neg))
+             open(f_neg, "w").write("\n".join(e_neg)+"\n")
           #if force or not os.path.isfile(f_ppos):
             # open(f_ppos, "w").write("\n".join(result["POS"]))
           #if force or not os.path.isfile(f_pneg):
             # open(f_pneg, "w").write("\n".join(result["NEG"]))
       else:
           if force or not os.path.isfile(f_pos):
-             open(f_pos, "w").write("\n".join(result["POS"]))
+             open(f_pos, "w").write("\n".join(result["POS"])+"\n")
           if force or not os.path.isfile(f_neg):
-             open(f_neg, "w").write("\n".join(result["NEG"]))
+             open(f_neg, "w").write("\n".join(result["NEG"])+"\n")
       #if force or not os.path.isfile(f_ppos):
       #  open(f_ppos, "w").write("\n".join(pos_parents))
       #if force or not os.path.isfile(f_pneg):
