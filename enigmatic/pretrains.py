@@ -14,7 +14,7 @@ def extract_parents(result):
     for clause in result:
         tmp = clause[:clause.index('#')]
         parentr0 = pat1.search(clause)
-        if parent1:
+        if parentr0:
             parentr1 = pat2.search(parentr0.group(1))
             if parentr1:
                 parents.append(parentr1.group(1))
@@ -30,11 +30,15 @@ def extract_parents(result):
 def unpack_parents(result):
     examples = []
     for clause in result:
-        tmp = clause[:clause.index('#')]
-        parent1 = pat1.search(clause)
-        parent1 = parent1.group(1) if parent1 else tmp
-        parent2 = pat2.search(clause)
-        parent2 = parent2.group(1) if parent2 else tmp
+        tmp = clause[:clause.index('#')]; parent1 = tmp; parent2 = tmp;
+        r0 = pat1.search(clause)
+        if r0:
+            r1 = pat2.search(r0.group(1))
+            if r1:
+                parent1 = r1.group(1)
+                parent2 = r1.group(2)
+            else:
+                parent1 = r0.group(1)
         if "proofvector" in clause:
             tmp += clause[clause.rindex("#proofvector"):-1]
         examples.extend([tmp, parent1, parent2])
