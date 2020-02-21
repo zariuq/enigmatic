@@ -34,7 +34,7 @@ def unpack_parents(result):
         parent2 = pat2.search(clause)
         parent2 = parent2.group(1) if parent2 else tmp
         if "proofvector" in clause:
-            tmp += clause[clause.rindex("proofvector"):-1]
+            tmp += clause[clause.rindex("#proofvector"):-1]
         examples.extend([tmp, parent1, parent2])
     return examples
 
@@ -84,18 +84,22 @@ def processsedstate(f_dat, f_pos, f_neg, hashing=None):
              clause = ["%s:%s"%tuple(x) for x in clause if x]
           return " " + " ".join(clause)
       else:
-          return ""
+          return None
    dat = open(f_dat).read().strip().split("\n")
    dat = [x for x in dat if x]
    i = 0
    for pos in open(f_pos):
-      dat[i] += parse(pos)
-      i += 1
+      pdat = parse(pos)
+      if pdat:
+          dat[i] += " "+pdat
+          i += 1
    for neg in open(f_neg):
-      dat[i] += parse(neg)
-      i += 1
-   if i != len(dat):
-      raise Exception("File %s does not match files %s and %s!" % (f_dat,f_pos,f_neg))
+      pdat = parse(neg)
+      if pdat:
+          dat[i] += " "+pdat
+          i += 1
+   if i != len(dat) and i != 0: # Hmm, presently the vector is not logged on the initial baseline round of training...
+      raise Exception("File %s (%d) does not match files %s and %s (%d)!" % (f_dat, len(dat),f_pos,f_neg, i))
    open(f_dat, "w").write("\n".join(dat))
 
 def prepare2(job):

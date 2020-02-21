@@ -1,10 +1,11 @@
+
 import xgboost as xgb
 from .learner import Learner
 
 DEFAULTS = {
-   'max_depth': 9, 
-   'eta': 0.2, 
-   'objective': 'binary:logistic', 
+   'max_depth': 9,
+   'eta': 0.2,
+   'objective': 'binary:logistic',
    'num_round': 150
 }
 
@@ -40,4 +41,3 @@ class XGBoost(Learner):
       bst = xgb.train(self.params, dtrain, self.num_round, evals=[(dtrain, "training")])
       bst.save_model(f_mod)
       return bst
-
