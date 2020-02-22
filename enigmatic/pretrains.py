@@ -40,7 +40,7 @@ def unpack_parents(result):
             else:
                 parent1 = r0.group(1)
         if "proofvector" in clause:
-            tmp += clause[clause.rindex("#proofvector"):-1]
+            tmp += clause[clause.rindex("#proofvector"):]
         examples.extend([tmp, parent1, parent2])
     return examples
 
@@ -72,7 +72,7 @@ def proofstate(f_dat, f_pos, f_neg, hashing=None):
       if pdat:
           dat[i] += " "+pdat
           i += 1
-   if i != len(dat):
+   if i != len(dat) and i != 0:
       raise Exception("File %s (%d) does not match files %s and %s (%d)!" % (f_dat, len(dat),f_pos,f_neg, i))
    open(f_dat, "w").write("\n".join(dat))
 
