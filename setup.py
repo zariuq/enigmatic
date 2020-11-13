@@ -17,7 +17,8 @@ setup(name='enigmatic',
       install_requires=[
          'xgboost',
          'lightgbm',
-         'pyprove==0.1'
+         'parameter-sherpa',
+         'pyprove==0.2'
       ],
       zip_safe=False)
 

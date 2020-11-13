@@ -1,96 +1,151 @@
-import math
+import os, io
+import subprocess
+import logging, random
+from sklearn.datasets import load_svmlight_file
+import numpy, scipy
+from pyprove import expres, par, log, human
+from . import enigmap
 
-from .enigmap import fhash
+DEFAULT_NAME = "00TRAINS"
+DEFAULT_DIR = os.getenv("PYPROVE_TRAINS", DEFAULT_NAME)
 
-PREFIX = {
-   "+": "+1",
-   "-": "+0",
-   "*": ""
-}
+logger = logging.getLogger(__name__)
 
-BOOSTS = {
-   "WRONG:POS": 1,
-   "WRONG:NEG": 0
-}
+def path(bid, limit, features, dataname, **others):
+   bid = bid.replace("/","-")
+   tid = "%s-%s" % (bid, limit)
+   return os.path.join(DEFAULT_DIR, tid, dataname, features)
 
-def count(ftrs, vector, emap, offset, strict=True):
-   for ftr in ftrs:
-      if not ftr:
-         continue
-      if ftr.startswith("$"):
-         continue
-      if "/" in ftr:
-         parts = ftr.split("/")
-         ftr = parts[0]
-         inc = int(parts[1])
-         if inc == 0:
-            continue
-      else:
-         inc = 1
-      if (not strict) and (ftr not in emap):
-         continue
-      if isinstance(emap, int): # hashing version (emap::int is the base)
-         fid = fhash(ftr, emap) + offset
-      else:
-         fid = emap[ftr] + offset
-      vector[fid] = vector[fid]+inc if fid in vector else inc
+def filename(**others):
+   return os.path.join(path(**others), "train.in")
 
-def proofstate(ftrs, vector, offset, hashing=None):
-   # TODO: hash also proof numbers (modulo hashing)
-   for ftr in ftrs:
-      if not ftr.startswith("$"):
-         continue
-      (num, val) = ftr[1:].split("/")
-      (num, val) = (int(num), float(val))
-      if not val:
-         continue
-      vector[offset+num] = val
+def datafiles(f_in):
+   z_data = f_in + "-data.npz"
+   z_label = f_in + "-label.npz"
+   return [z_data, z_label]
 
-def string(sign, vector):
-   ftrs = ["%s:%s"%(fid,vector[fid]) for fid in sorted(vector)] 
-   ftrs = "%s %s"%(PREFIX[sign], " ".join(ftrs))
-   return ftrs
+def size(f_in):
+   z_data = datafiles(f_in)[0]
+   if os.path.isfile(z_data):
+      f_in = z_data
+   return os.path.getsize(f_in)
 
-def normalize(vector):
-    non0 = len([x for x in vector if vector[x]])
-    non0 = math.sqrt(non0)
-    return {x:vector[x]/non0 for x in vector}
+def format(f_in):
+   if os.path.isfile(datafiles(f_in)[0]):
+      return "binary/npz"
+   if os.path.isfile(f_in):
+      return "text/svm"
+   return "unknown"
 
-def encode(pr, emap, strict=True):
-   (sign,clause,conj) = pr.strip().split("|")
-   vector = {}
-   count(clause.strip().split(" "), vector, emap, 0, strict)
-   conjs = conj.strip().split(" ")
-   base = emap if isinstance(emap,int) else len(emap)
-   count(conjs, vector, emap, base, strict)
-   proofstate(conjs, vector, 2*base, emap)
-   #vector = normalize(vector)
-   return string(sign, vector)
+def exist(f_in):
+   return all(map(os.path.isfile, datafiles(f_in)))
 
-def make(pre, emap, out=None, strict=True):
-   train = []
-   for pr in pre:
-      tr = encode(pr, emap, strict)
-      if out:
-         out.write(tr)
-         out.write("\n")
-      else:
-         train.append(tr)
-   return train if not out else None
+def load(f_in):
+   if exist(f_in): 
+      (z_data, z_label) = datafiles(f_in)
+      data = scipy.sparse.load_npz(z_data)
+      label = numpy.load(z_label, allow_pickle=True)["label"]
+   else:
+      (data, label) = load_svmlight_file(f_in, zero_based=True)
+   return (data, label)
 
-def boost(f_in, f_out, out, method="WRONG:POS"):
-   if method not in BOOSTS:
-      raise Exception("Unknown boost method (%s)")
-   CLS = BOOSTS[method]
+def compress(f_in):
+   logger.debug("- loading %s" % f_in)
+   logger.debug("- uncompressed size: %s" % human.humanbytes(size(f_in)))
+   (data, label) = load_svmlight_file(f_in, zero_based=True)
+   (z_data, z_label) = datafiles(f_in)
+   logger.debug("- compressing to %s" % z_data)
+   scipy.sparse.save_npz(z_data, data, compressed=True)
+   numpy.savez_compressed(z_label, label=label)
+   logger.debug("- compressed size: %s" % human.humanbytes(size(f_in)))
 
-   ins = open(f_in).read().strip().split("\n")
-   outs = open(f_out).read().strip().split("\n")
+def makesingle(f_list, features, f_problem=None, f_map=None, f_buckets=None, f_out=None, prefix=None):
+   args = [
+      "enigmatic-features", 
+      "--free-numbers", 
+      "--features=%s" % features
+   ]
+   if f_map:
+      args.append("--output-map=%s" % f_map)
+   if f_buckets:
+      args.append("--output-buckets=%s" % f_buckets)
+   if f_problem:
+      args.append("--problem=%s" % f_problem)
+   if prefix is True:
+      args.append("--prefix-pos")
+   elif prefix is False:
+      args.append("--prefix-neg")
+   elif prefix is not None:
+      args.append("--prefix=%s" % prefix)
+   args.append(f_list)
+   try:
+      out = subprocess.check_output(args)
+   except subprocess.CalledProcessError as e:
+      out = None
+   if f_out and out:
+      with open(f_out, "ab") as f: f.write(out)
+   return out
 
-   for (correct,predicted) in zip(ins,outs):
-      out.write(correct)
-      out.write("\n")
-      cls = int(correct.split()[0])
-      if cls == CLS and cls != int(predicted):
-         out.write(correct)
-         out.write("\n")
+def makes(posnegs, bid, features, cores, callback, msg="[+/-]", d_info=None, options=[], **others):
+   def job(f_list):
+      p = os.path.basename(f_list)[:-4]
+      pos = f_list.endswith(".pos")
+      f_problem = expres.benchmarks.path(bid, p)
+      f_map = os.path.join(d_info, p+".map") if d_info else None
+      f_buckets  = os.path.join(d_info, p+".json") if d_info else None
+      f_out = os.path.join(d_info, p+".in") if d_info else None
+      return (f_list, features, f_problem, f_map, f_buckets, f_out, pos)
+   jobs = list(map(job, posnegs))
+   barmsg = msg if not "headless" in options else None
+   par.apply(makesingle, jobs, cores=cores, barmsg=barmsg, 
+      callback=callback, chunksize=300)
+
+def make(d_posnegs, debug=[], split=False, **others):
+   def save(res, bar):
+      nonlocal out
+      if res:
+         out.write(res)
+   d_in = path(**others)
+   f_in = filename(**others)
+   logger.info("+ generating training files")
+   os.system('mkdir -p "%s"' % d_in)
+   if (exist(f_in) or os.path.isfile(f_in)) and not "force" in debug:
+      logger.debug("- skipped generating %s" % f_in)
+      return
+   posnegs = []
+   d_info = path(**others) if "train" in debug else None
+   for d in d_posnegs:
+      fs = [f for f in os.listdir(d) if f.endswith(".pos") or f.endswith(".neg")]
+      fs = [os.path.join(d,f) for f in fs]
+      posnegs.extend(fs)
+   logger.info("- found %s pos/neg files in %s directories" % 
+      (len(posnegs), len(d_posnegs)))
+   logger.debug("- directories: %s", d_posnegs)
+
+   if split:
+      f_test = f_in+"-test.in"
+      logger.debug("- generating tests file %s" % f_test)
+      out = open(f_test, "wb")
+      random.shuffle(posnegs)
+      i = int(len(posnegs) * split)
+      posneg0 = posnegs[:i]
+      posneg1 = posnegs[i:]
+      makes(posneg0, callback=save, d_info=d_info, debug=debug, msg="[tst]", **others)
+      open(f_test+"-posnegs.txt","w").write("\n".join(posneg0))
+      posnegs = posneg1
+
+   logger.debug("- generating trains file %s" % f_in)
+   open(f_in+"-posnegs.txt","w").write("\n".join(posnegs))
+   out = open(f_in, "wb")
+   makes(posnegs, callback=save, d_info=d_info, debug=debug, msg="[trn]", **others)
+   out.close()
+   # compress data as numpy npz data
+   if not "nozip" in debug:
+      compress(f_in)
+      os.remove(f_in)
+   enigmap.build(debug=["force"], path=path, **others)
+
+def build(pids, **others):
+   d_posnegs = [expres.results.dir(pid=pid, **others) for pid in pids]
+   make(d_posnegs, **others)
 
