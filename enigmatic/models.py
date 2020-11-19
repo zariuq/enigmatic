@@ -46,6 +46,7 @@ def build(learner, debug=[], options=[], **others):
    return new
 
 def loop(pids, results, nick, **others):
+   print(others["others"].keys())
    others["dataname"] += "/" + nick
    trains.build(pids=pids, **others)
    newp = build(pids=pids, **others)

@@ -1,4 +1,5 @@
 import re
+import os
 import logging
 import lightgbm as lgb
 from .learner import Learner
