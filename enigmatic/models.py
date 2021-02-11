@@ -12,6 +12,8 @@ DEFAULT_DIR = os.getenv("ENIGMA_ROOT", DEFAULT_NAME)
 logger = logging.getLogger(__name__)
 
 def name(bid, limit, dataname, features, learner, **others):
+   if others.get("parents", False):
+       return "%s/%s-%s/%s/%s/%s" % ("parents", bid.replace("/","-"), limit, dataname, features, learner.desc())
    return "%s-%s/%s/%s/%s" % (bid.replace("/","-"), limit, dataname, features, learner.desc())
 
 def path(**others):
@@ -21,7 +23,7 @@ def pathfile(f_file, **others):
    return os.path.join(path(**others), f_file)
 
 def filename(learner, **others):
-   model = name(learner=learner, **others)
+   #model = name(learner=learner, **others)
    f_file = "model.%s" % learner.ext()
    f_mod = pathfile(f_file, learner=learner, **others)
    return f_mod
@@ -46,10 +48,26 @@ def build(learner, debug=[], options=[], **others):
    return new
 
 def loop(pids, results, nick, **others):
-   print(others["others"].keys())
+   print(others.keys()) # Is this some typo? print(others["others"].keys())
    others["dataname"] += "/" + nick
    trains.build(pids=pids, **others)
    newp = build(pids=pids, **others)
+   newr = expres.benchmarks.eval(pids=newp, **others)
+   pids.extend(newp)
+   results.update(newr)
+
+def loop_parents(pids, results, nick, **others):
+   print(others.keys()) # Is this some typo? print(others["others"].keys())
+   others["dataname"] += "/" + nick
+   
+   others["parents"] = False
+   trains.build(pids=pids, **others)
+   newp = build(pids=pids, **others)
+   
+   others["parents"] = True
+   trains.build(pids=pids, **others)
+   newp = build(pids=pids, **others)
+   
    newr = expres.benchmarks.eval(pids=newp, **others)
    pids.extend(newp)
    results.update(newr)

@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 def path(bid, limit, features, dataname, **others):
    bid = bid.replace("/","-")
    tid = "%s-%s" % (bid, limit)
+   if others.get("parents", False):
+       return os.path.join(DEFAULT_DIR, "parents", tid, dataname, features)
    return os.path.join(DEFAULT_DIR, tid, dataname, features)
 
 def filename(**others):
@@ -59,7 +61,7 @@ def compress(f_in):
    numpy.savez_compressed(z_label, label=label)
    logger.debug("- compressed size: %s" % human.humanbytes(size(f_in)))
 
-def makesingle(f_list, features, f_problem=None, f_map=None, f_buckets=None, f_out=None, prefix=None):
+def makesingle(f_list, features, f_problem=None, f_map=None, f_buckets=None, f_out=None, prefix=None, merge_c=None):
    args = [
       "enigmatic-features", 
       "--free-numbers", 
@@ -77,6 +79,8 @@ def makesingle(f_list, features, f_problem=None, f_map=None, f_buckets=None, f_o
       args.append("--prefix-neg")
    elif prefix is not None:
       args.append("--prefix=%s" % prefix)
+   if merge_c:
+      args.append("--merge")
    args.append(f_list)
    try:
       out = subprocess.check_output(args)
@@ -94,7 +98,8 @@ def makes(posnegs, bid, features, cores, callback, msg="[+/-]", d_info=None, opt
       f_map = os.path.join(d_info, p+".map") if d_info else None
       f_buckets  = os.path.join(d_info, p+".json") if d_info else None
       f_out = os.path.join(d_info, p+".in") if d_info else None
-      return (f_list, features, f_problem, f_map, f_buckets, f_out, pos)
+      merge_c = others.get("parents", False)
+      return (f_list, features, f_problem, f_map, f_buckets, f_out, pos, merge_c)
    jobs = list(map(job, posnegs))
    barmsg = msg if not "headless" in options else None
    par.apply(makesingle, jobs, cores=cores, barmsg=barmsg, 
@@ -114,6 +119,7 @@ def make(d_posnegs, debug=[], split=False, **others):
       return
    posnegs = []
    d_info = path(**others) if "train" in debug else None
+   print(d_info)
    for d in d_posnegs:
       fs = [f for f in os.listdir(d) if f.endswith(".pos") or f.endswith(".neg")]
       fs = [os.path.join(d,f) for f in fs]
@@ -146,6 +152,9 @@ def make(d_posnegs, debug=[], split=False, **others):
    enigmap.build(debug=["force"], path=path, **others)
 
 def build(pids, **others):
-   d_posnegs = [expres.results.dir(pid=pid, **others) for pid in pids]
+   if others.get("parents", False):
+       d_posnegs = [os.path.join(expres.results.dir(pid=pid, **others), "parents") for pid in pids]
+   else:
+       d_posnegs = [expres.results.dir(pid=pid, **others) for pid in pids]
    make(d_posnegs, **others)
 
