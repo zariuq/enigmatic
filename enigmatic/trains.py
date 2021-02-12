@@ -119,7 +119,7 @@ def make(d_posnegs, debug=[], split=False, **others):
       return
    posnegs = []
    d_info = path(**others) if "train" in debug else None
-   print(d_info)
+   #print(d_info)
    for d in d_posnegs:
       fs = [f for f in os.listdir(d) if f.endswith(".pos") or f.endswith(".neg")]
       fs = [os.path.join(d,f) for f in fs]

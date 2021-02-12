@@ -59,7 +59,7 @@ def build(model, learner, pids=None, refs=None, **others):
    for ref in refs:
       new.extend([
          solo(ref, model, mult=0, noinit=True, efun=efun),
-         coop(ref, model, mult=0, noinit=True, efun=efun)
+         #coop(ref, model, mult=0, noinit=True, efun=efun)
       ])
    logger.debug(log.lst("- %d new strategies:"%len(new), new))
    return new
