@@ -12,8 +12,8 @@ DEFAULT_DIR = os.getenv("ENIGMA_ROOT", DEFAULT_NAME)
 
 logger = logging.getLogger(__name__)
 
-def name(bid, limit, dataname, features, learner, **others):
-   if others.get("parents", False):
+def name(bid, limit, dataname, features, learner, parents, **others):
+   if parents: #others.get("parents", False):
        return "%s/%s-%s/%s/%s/%s" % ("parents", bid.replace("/","-"), limit, dataname, features, learner.desc())
    return "%s-%s/%s/%s/%s" % (bid.replace("/","-"), limit, dataname, features, learner.desc())
 
@@ -39,6 +39,7 @@ def build(learner, debug=[], options=[], **others):
    enigmap.build(learner=learner, debug=debug, **others)
    #learner.params["num_feature"] = enigmap.load(learner=learner, **others)["count"]
    
+   new = protos.build(model, learner=learner, debug=debug, **others)
    if os.path.isfile(f_mod) and not "force" in debug:
       logger.debug("- skipped building model %s" % f_mod)
       #return new
@@ -61,9 +62,7 @@ def build(learner, debug=[], options=[], **others):
      #os.system('ln -sf "{}" {}'.format(f_dir, s_dir))
      logger.info("- creating symlink to model directory at {}".format(s_dir))
 
-   else:
-       new = protos.build(model, learner=learner, debug=debug, **others)
-       return new
+   return new
 
 def loop(pids, results, nick, **others):
    print(others.keys()) # Is this some typo? print(others["others"].keys())
@@ -86,7 +85,7 @@ def loop_parents(pids, results, nick, **others):
    
    others["parents"] = True
    trains.build(pids=pids, **others)
-   build(pids=pids, **others)
+   newp += build(pids=pids, **others)
    
    newr = expres.benchmarks.eval(pids=newp, **others)
    pids.extend(newp)
