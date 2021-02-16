@@ -122,14 +122,19 @@ def build(model, learner, pids=None, refs=None, parents=False, **others):
    for ref in refs:   
       if parents:
           s_model = models.name(learner=learner, parents=False, **others)
-          coop_f = coop_parents(ref, model, mult=0, noinit=True, efun=efun)
+          #coop_f = coop_parents(ref, model, mult=0, noinit=True, efun=efun)
           solo_sf = solo_parents_and_selection(ref, model, s_model, mult=0, noinit=True, efun=efun)
-          coop_sf = coop_parents_and_selection(ref, model, s_model, mult=0, noinit=True, efun=efun)
-          new.extend([coop_f, solo_sf, coop_sf])
+          #coop_sf = coop_parents_and_selection(ref, model, s_model, mult=0, noinit=True, efun=efun)
+          new.extend([#coop_f, 
+                      solo_sf, 
+                      #coop_sf
+                      ])
       else: 
           solo_s = solo(ref, model, mult=0, noinit=True, efun=efun)
-          coop_s = coop(ref, model, mult=0, noinit=True, efun=efun)
-          new.extend([solo_s, coop_s])
+          #coop_s = coop(ref, model, mult=0, noinit=True, efun=efun)
+          new.extend([solo_s, 
+                      #coop_s
+                      ])
       
    logger.debug(log.lst("- %d new strategies:"%len(new), new))
    return new
