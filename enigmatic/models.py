@@ -12,7 +12,7 @@ DEFAULT_DIR = os.getenv("ENIGMA_ROOT", DEFAULT_NAME)
 
 logger = logging.getLogger(__name__)
 
-def name(bid, limit, dataname, features, learner, parents, **others):
+def name(bid, limit, dataname, features, learner, parents=False, **others):
    if parents: #others.get("parents", False):
        return "%s/%s-%s/%s/%s/%s" % ("parents", bid.replace("/","-"), limit, dataname, features, learner.desc())
    return "%s-%s/%s/%s/%s" % (bid.replace("/","-"), limit, dataname, features, learner.desc())
