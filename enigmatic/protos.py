@@ -67,10 +67,10 @@ def coop_parents(pid, name, mult=0, noinit=False, efun="Enigma", fullname=False)
    expres.protos.save(epid, eproto)
    return epid
 
-def solo_parents_and_selection(pid, name, s_name, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist"):
+def solo_parents_and_selection(pid, name, fsname, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist"):
    proto = expres.protos.load(pid)
    fname = os.path.join(models.DEFAULT_DIR, name)
-   fsname = os.path.join(models.DEFAULT_DIR, s_name)
+   #fsname = os.path.join(models.DEFAULT_DIR, s_name)
    enigma = cef(1, efun, fsname, prio, binary_weigths, threshold)
    eproto = "%s--filter-generated-clauses=\"%s\" -H'(%s)'" % (proto[:proto.index("-H'")], fname, enigma)
    if noinit:
@@ -86,10 +86,10 @@ def solo_parents_and_selection(pid, name, s_name, mult=0, noinit=False, efun="En
    expres.protos.save(epid, eproto)
    return epid
 
-def coop_parents_and_selection(pid, name, s_name, freq=None, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist"):
+def coop_parents_and_selection(pid, name, fsname, freq=None, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist"):
    proto = expres.protos.load(pid)
    fname = os.path.join(models.DEFAULT_DIR, name)
-   fsname = os.path.join(models.DEFAULT_DIR, s_name)
+   #fsname = os.path.join(models.DEFAULT_DIR, s_name)
    post = efun
    if not freq:
       freq = sum(map(int,re.findall(r"(\d*)\*", proto)))
@@ -121,10 +121,13 @@ def build(model, learner, pids=None, refs=None, parents=False, **others):
    new = []
    for ref in refs:   
       if parents:
-          s_model = models.name(learner=learner, parents=False, **others)
+          if "eref" in others:
+              fsname = others["eref"]
+          else:
+              fsname = os.path.join(models.DEFAULT_DIR, models.name(learner=learner, parents=False, **others))
           #coop_f = coop_parents(ref, model, mult=0, noinit=True, efun=efun)
-          solo_sf = solo_parents_and_selection(ref, model, s_model, mult=0, noinit=True, efun=efun)
-          #coop_sf = coop_parents_and_selection(ref, model, s_model, mult=0, noinit=True, efun=efun)
+          solo_sf = solo_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun)
+          #coop_sf = coop_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun)
           new.extend([#coop_f, 
                       solo_sf, 
                       #coop_sf
