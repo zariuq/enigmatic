@@ -152,9 +152,10 @@ def make(d_posnegs, debug=[], split=False, **others):
    enigmap.build(debug=["force"], path=path, **others)
 
 def build(pids, **others):
+   extras = others.get("d_posneg", [])
    if others.get("parents", False):
-       d_posnegs = [os.path.join(expres.results.dir(pid=pid, **others), "parents") for pid in pids]
+       d_posnegs = [os.path.join(expres.results.dir(pid=pid, **others), "parents") for pid in pids] + extras
    else:
-       d_posnegs = [expres.results.dir(pid=pid, **others) for pid in pids]
+       d_posnegs = [expres.results.dir(pid=pid, **others) for pid in pids] + extras
    make(d_posnegs, **others)
 
