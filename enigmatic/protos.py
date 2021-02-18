@@ -123,6 +123,8 @@ def build(model, learner, pids=None, refs=None, parents=False, **others):
       if parents:
           if "eref" in others:
               fsname = others["eref"]
+          elif "eref2" in others:
+              fsname = others["eref2"]
           else:
               fsname = os.path.join(models.DEFAULT_DIR, models.name(learner=learner, parents=False, **others))
           #coop_f = coop_parents(ref, model, mult=0, noinit=True, efun=efun)

@@ -86,6 +86,9 @@ def loop_parents(pids, results, nick, fid1=None, fid2=None, learner1=None, learn
    trains.build(pids=pids, **others)
    newp = build(pids=pids, **others)
    
+   # Allows the aboven Selector to be passed to the Filter (superseded by "eref")
+   others["eref2"] = os.path.join(DEFAULT_DIR, name(**others))
+   
    others["parents"] = True
    others["features"] = fid2 if fid2 else others["features"]
    others["learner"] = learner2 if learner2 else others["learner"]
