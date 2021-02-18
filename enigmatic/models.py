@@ -60,7 +60,7 @@ def build(learner, debug=[], options=[], **others):
      #print('ln -sf "{}" {}'.format(model, s_dir))
      #print(s_dir.resolve())
      #os.system('ln -sf "{}" {}'.format(f_dir, s_dir))
-     logger.info("- creating symlink to model directory at {}".format(s_dir))
+     #logger.info("- creating symlink to model directory at {}".format(s_dir))
 
    return new
 
@@ -75,15 +75,20 @@ def loop(pids, results, nick, **others):
 
 #Important to note that the parents model is not a new strategy!
 #However the parents model's model can be reliably accessed via the symlink
-def loop_parents(pids, results, nick, **others):
+#And, okay, many more convenient personal options (to the extent this shouldn't be in the 'repo' :-p
+def loop_parents(pids, results, nick, fid1=None, fid2=None, learner1=None, learner2=None, **others):
    #print(others.keys()) # Is this some typo? print(others["others"].keys())
    others["dataname"] += "/" + nick
    
    others["parents"] = False
+   others["features"] = fid1 if fid1 else others["features"]
+   others["learner"] = learner1 if learner1 else others["learner"]
    trains.build(pids=pids, **others)
    newp = build(pids=pids, **others)
    
    others["parents"] = True
+   others["features"] = fid2 if fid2 else others["features"]
+   others["learner"] = learner2 if learner2 else others["learner"]
    trains.build(pids=pids, **others)
    newp += build(pids=pids, **others)
    
