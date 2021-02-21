@@ -72,6 +72,7 @@ def loop(pids, results, nick, **others):
    newr = expres.benchmarks.eval(pids=newp, **others)
    pids.extend(newp)
    results.update(newr)
+   return newp
 
 #Important to note that the parents model is not a new strategy!
 #However the parents model's model can be reliably accessed via the symlink
@@ -98,6 +99,8 @@ def loop_parents(pids, results, nick, fid1=None, fid2=None, learner1=None, learn
    newr = expres.benchmarks.eval(pids=newp, **others)
    pids.extend(newp)
    results.update(newr)
+   
+   return newp
 
 def accuracy(learner, f_in, f_mod):
    manager = Manager()
