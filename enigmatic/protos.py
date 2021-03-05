@@ -67,7 +67,7 @@ def coop_parents(pid, name, mult=0, noinit=False, efun="Enigma", fullname=False)
    expres.protos.save(epid, eproto)
    return epid
 
-def solo_parents_and_selection(pid, name, fsname, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist"):
+def solo_parents_and_selection(pid, name, fsname, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist", emodel=False):
    proto = expres.protos.load(pid)
    fname = os.path.join(models.DEFAULT_DIR, name)
    #fsname = os.path.join(models.DEFAULT_DIR, s_name)
@@ -82,11 +82,14 @@ def solo_parents_and_selection(pid, name, fsname, mult=0, noinit=False, efun="En
          post += "No" 
       epid = "Enigma+%s+%s+%s" % (name.replace("/","+"), pid, post)
    else:
-      epid = "Enigma+%s+solo-sf-%s" % (name.replace("/","+"), pid)
+      if emodel:
+          epid = "Enigma+%s+solo-sef-%s" % (name.replace("/","+"), pid)
+      else:
+          epid = "Enigma+%s+solo-sf-%s" % (name.replace("/","+"), pid)
    expres.protos.save(epid, eproto)
    return epid
 
-def coop_parents_and_selection(pid, name, fsname, freq=None, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist"):
+def coop_parents_and_selection(pid, name, fsname, freq=None, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist", emodel=False):
    proto = expres.protos.load(pid)
    fname = os.path.join(models.DEFAULT_DIR, name)
    #fsname = os.path.join(models.DEFAULT_DIR, s_name)
@@ -108,7 +111,10 @@ def coop_parents_and_selection(pid, name, fsname, freq=None, mult=0, noinit=Fals
          post += "No" 
       epid = "Enigma+%s+%s+%s" % (name.replace("/","+"), pid, post)
    else:
-      epid = "Enigma+%s+coop-sf-%s" % (name.replace("/","+"), pid)
+      if emodel:
+          epid = "Enigma+%s+coop-sef-%s" % (name.replace("/","+"), pid)
+      else:
+          epid = "Enigma+%s+coop-sf-%s" % (name.replace("/","+"), pid)
    expres.protos.save(epid, eproto)
    return epid
 
@@ -123,24 +129,31 @@ def build(model, learner, pids=None, refs=None, parents=False, **others):
       if parents:
           if "eref" in others:
               fsname = others["eref"]
-          elif "eref2" in others:
+              solo_sef = solo_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun,emodel=True)
+              coop_sef = coop_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun,emodel=True)
+              new.extend([solo_sef, 
+                          coop_sef
+                          ])
+          if "eref2" in others:
               fsname = others["eref2"]
           else:
               fsname = os.path.join(models.DEFAULT_DIR, models.name(learner=learner, parents=False, **others))
-          #coop_f = coop_parents(ref, model, mult=0, noinit=True, efun=efun)
+          coop_f = coop_parents(ref, model, mult=0, noinit=True, efun=efun)
           solo_sf = solo_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun)
-          #coop_sf = coop_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun)
-          new.extend([#coop_f, 
+          coop_sf = coop_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun)
+          new.extend([coop_f, 
                       solo_sf, 
-                      #coop_sf
-                      ])
-      else: 
-          solo_s = solo(ref, model, mult=0, noinit=True, efun=efun)
-          #coop_s = coop(ref, model, mult=0, noinit=True, efun=efun)
-          new.extend([solo_s, 
-                      #coop_s
+                      coop_sf
                       ])
       
+      else: 
+          solo_s = solo(ref, model, mult=0, noinit=True, efun=efun)
+          coop_s = coop(ref, model, mult=0, noinit=True, efun=efun)
+          new.extend([solo_s, 
+                      coop_s
+                      ])
+      
+
    logger.debug(log.lst("- %d new strategies:"%len(new), new))
    return new
 
