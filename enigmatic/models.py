@@ -77,11 +77,11 @@ def loop(pids, results, nick, **others):
 #Important to note that the parents model is not a new strategy!
 #However the parents model's model can be reliably accessed via the symlink
 #And, okay, many more convenient personal options (to the extent this shouldn't be in the 'repo' :-p
-def loop_parents(pids, results, nick, fid1=None, fid2=None, learner1=None, learner2=None, **others):
+def loop_parents(pids, results, nick, parents="merge", fid1=None, fid2=None, learner1=None, learner2=None, **others):
    #print(others.keys()) # Is this some typo? print(others["others"].keys())
    others["dataname"] += "/" + nick
    
-   others["parents"] = False
+   others["parents"] = None
    others["features"] = fid1 if fid1 else others["features"]
    others["learner"] = learner1 if learner1 else others["learner"]
    trains.build(pids=pids, **others)
@@ -90,7 +90,7 @@ def loop_parents(pids, results, nick, fid1=None, fid2=None, learner1=None, learn
    # Allows the aboven Selector to be passed to the Filter (superseded by "eref")
    others["eref2"] = os.path.join(DEFAULT_DIR, name(**others))
    
-   others["parents"] = True
+   others["parents"] = parents
    others["features"] = fid2 if fid2 else others["features"]
    others["learner"] = learner2 if learner2 else others["learner"]
    trains.build(pids=pids, **others)

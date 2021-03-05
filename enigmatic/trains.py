@@ -80,8 +80,9 @@ def makesingle(f_list, features, f_problem=None, f_map=None, f_buckets=None, f_o
    elif prefix is not None:
       args.append("--prefix=%s" % prefix)
    if merge_c:
-      args.append("--merge")
+      args.append("--%s" % merge_c)
    args.append(f_list)
+   #print("\n", " ".join(args))
    try:
       out = subprocess.check_output(args)
    except subprocess.CalledProcessError as e:
