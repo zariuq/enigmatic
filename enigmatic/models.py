@@ -1,7 +1,7 @@
 import os
 import json
 from multiprocessing import Process, Manager
-from pathlib import Path
+#from pathlib import Path
 import logging
 
 from . import trains, protos, enigmap
@@ -13,7 +13,7 @@ DEFAULT_DIR = os.getenv("ENIGMA_ROOT", DEFAULT_NAME)
 logger = logging.getLogger(__name__)
 
 def name(bid, limit, dataname, features, learner, parents=False, **others):
-   if parents: #others.get("parents", False):
+   if parents:
        return "%s/%s-%s/%s/%s/%s" % ("parents", bid.replace("/","-"), limit, dataname, features, learner.desc())
    return "%s-%s/%s/%s/%s" % (bid.replace("/","-"), limit, dataname, features, learner.desc())
 
@@ -34,7 +34,6 @@ def build(learner, debug=[], options=[], **others):
    model = name(learner=learner, **others)
    logger.info("+ building model %s" % model)
    f_mod = filename(learner=learner, **others)
-   #f_dir = os.path.dirname(f_mod)
    os.system('mkdir -p "%s"' % os.path.dirname(f_mod))
    enigmap.build(learner=learner, debug=debug, **others)
    #learner.params["num_feature"] = enigmap.load(learner=learner, **others)["count"]
@@ -51,21 +50,17 @@ def build(learner, debug=[], options=[], **others):
        p.start()
        p.join()
    
-    # Create a symlink to the data folder.  Especially useful for looping.
-   if others.get("parents", False):
-     s_dir = Path(os.path.join(DEFAULT_DIR, "parent_model"))
-     if s_dir.is_symlink():
-         s_dir.unlink()
-     s_dir.symlink_to(Path(model))
-     #print('ln -sf "{}" {}'.format(model, s_dir))
-     #print(s_dir.resolve())
-     #os.system('ln -sf "{}" {}'.format(f_dir, s_dir))
-     #logger.info("- creating symlink to model directory at {}".format(s_dir))
+    # Create a symlink to the data folder. 
+   #if others.get("parents", False):
+   #  s_dir = Path(os.path.join(DEFAULT_DIR, "parent_model"))
+   #  if s_dir.is_symlink():
+   #      s_dir.unlink()
+   #  s_dir.symlink_to(Path(model))
 
    return new
 
 def loop(pids, results, nick, **others):
-   print(others.keys()) # Is this some typo? print(others["others"].keys())
+   print(others.keys())
    others["dataname"] += "/" + nick
    trains.build(pids=pids, **others)
    newp = build(pids=pids, **others)
@@ -74,11 +69,7 @@ def loop(pids, results, nick, **others):
    results.update(newr)
    return newp
 
-#Important to note that the parents model is not a new strategy!
-#However the parents model's model can be reliably accessed via the symlink
-#And, okay, many more convenient personal options (to the extent this shouldn't be in the 'repo' :-p
 def loop_parents(pids, results, nick, parents="merge", fid1=None, fid2=None, learner1=None, learner2=None, **others):
-   #print(others.keys()) # Is this some typo? print(others["others"].keys())
    others["dataname"] += "/" + nick
    
    others["parents"] = None
@@ -87,7 +78,7 @@ def loop_parents(pids, results, nick, parents="merge", fid1=None, fid2=None, lea
    trains.build(pids=pids, **others)
    newp = build(pids=pids, **others)
    
-   # Allows the aboven Selector to be passed to the Filter (superseded by "eref")
+   # Allows the above Selector to be passed to the Filter (superseded by "eref")
    others["eref2"] = os.path.join(DEFAULT_DIR, name(**others))
    
    others["parents"] = parents

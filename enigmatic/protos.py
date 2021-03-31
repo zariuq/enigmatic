@@ -70,7 +70,6 @@ def coop_parents(pid, name, mult=0, noinit=False, efun="Enigma", fullname=False)
 def solo_parents_and_selection(pid, name, fsname, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist", emodel=False):
    proto = expres.protos.load(pid)
    fname = os.path.join(models.DEFAULT_DIR, name)
-   #fsname = os.path.join(models.DEFAULT_DIR, s_name)
    enigma = cef(1, efun, fsname, prio, binary_weigths, threshold)
    eproto = "%s--filter-generated-clauses=\"%s\" -H'(%s)'" % (proto[:proto.index("-H'")], fname, enigma)
    if noinit:
@@ -92,7 +91,6 @@ def solo_parents_and_selection(pid, name, fsname, mult=0, noinit=False, efun="En
 def coop_parents_and_selection(pid, name, fsname, freq=None, mult=0, noinit=False, efun="Enigma", fullname=False, binary_weigths=1, threshold=0.5, prio="PreferWatchlist", emodel=False):
    proto = expres.protos.load(pid)
    fname = os.path.join(models.DEFAULT_DIR, name)
-   #fsname = os.path.join(models.DEFAULT_DIR, s_name)
    post = efun
    if not freq:
       freq = sum(map(int,re.findall(r"(\d*)\*", proto)))
