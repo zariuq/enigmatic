@@ -121,6 +121,7 @@ def coop_parents_and_selection(pid, name, fsname, freq=None, mult=0, noinit=Fals
 
 def build(model, learner, pids=None, refs=None, parents=False, **others):
    refs = refs if refs else pids
+   prio = others.get("prio", "PreferWatchlist")
    logger.info("- creating Enigma strategies for model %s" % model)
    logger.debug("- base strategies: %s" % refs)
    efun = learner.efun()
@@ -129,8 +130,8 @@ def build(model, learner, pids=None, refs=None, parents=False, **others):
       if parents:
           if "eref" in others:
               fsname = others["eref"]
-              solo_sef = solo_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun,emodel=True)
-              coop_sef = coop_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun,emodel=True)
+              solo_sef = solo_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun, prio=prio, emodel=True)
+              coop_sef = coop_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun, prio=prio, emodel=True)
               new.extend([solo_sef, 
                           coop_sef
                           ])
@@ -139,16 +140,16 @@ def build(model, learner, pids=None, refs=None, parents=False, **others):
           else:
               fsname = os.path.join(models.DEFAULT_DIR, models.name(learner=learner, parents=False, **others))
           coop_f = coop_parents(ref, model, mult=0, noinit=True, efun=efun)
-          solo_sf = solo_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun)
-          coop_sf = coop_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun)
+          solo_sf = solo_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun, prio=prio)
+          coop_sf = coop_parents_and_selection(ref, model, fsname, mult=0, noinit=True, efun=efun, prio=prio)
           new.extend([coop_f, 
                       solo_sf, 
                       coop_sf
                       ])
       
       else: 
-          solo_s = solo(ref, model, mult=0, noinit=True, efun=efun)
-          coop_s = coop(ref, model, mult=0, noinit=True, efun=efun)
+          solo_s = solo(ref, model, mult=0, noinit=True, efun=efun, prio=prio)
+          coop_s = coop(ref, model, mult=0, noinit=True, efun=efun, prio=prio)
           new.extend([solo_s, 
                       coop_s
                       ])
