@@ -53,25 +53,19 @@ class XGBoost(Learner):
       self.stats["model.last.loss"] = [losses[last], last]
       self.stats["model.best.loss"] = [losses[best], best]
 
-   def train(self, f_in, f_mod, atstart=None, atiter=None, atfinish=None):
-      logger.debug("- loading training data %s" % f_in)
+   def train(self, f_in, f_mod, init_model=None, handlers=None):
+      (atstart, atiter, atfinish) = handlers if handlers else (None,None,None)
       (xs, ys) = trains.load(f_in)
       dtrain = xgb.DMatrix(xs, label=ys)
       pos = sum(ys)
       neg = len(ys) - pos
-      self.stats["train.count"] = len(ys)
-      self.stats["train.pos.count"] = int(pos)
-      self.stats["train.neg.count"] = int(neg)
+      self.stats["train.counts"] = (len(ys), int(pos), int(neg))
       self.params["scale_pos_weight"] = (neg/pos)
       
       callbacks = [lambda _: atiter()] if atiter else None
-      logger.debug("- building xgb model %s" % f_mod)
-      logger.debug(log.data("- learning parameters:", self.params))
       if atstart: atstart()
-      bst = xgb.train(self.params, dtrain, self.num_round, evals=[(dtrain, "training")], callbacks=callbacks)
+      bst = xgb.train(self.params, dtrain, self.num_round, evals=[(dtrain, "training")], xgb_model=init_model, callbacks=callbacks)
       if atfinish: atfinish()
-      logger.debug("- saving model %s" % f_mod)
-      #bst.set_param("num_feature", 4096)
       bst.save_model(f_mod)
       return bst
 

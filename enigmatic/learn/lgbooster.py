@@ -8,11 +8,30 @@ from .. import trains
 logger = logging.getLogger(__name__)
 
 DEFAULTS = {
-   'max_depth': 9, 
-   'learning_rate': 0.2, 
+   'learning_rate': 0.15, 
    'objective': 'binary', 
    'num_round': 150,
-   'num_leaves': 300
+   'max_depth': 9, 
+   'num_leaves': 300,
+   # default values from the docs:
+   'min_data': 20,
+   'max_bin': 255,
+   'feature_fraction': 1.0,
+   'bagging_fraction': 1.0,
+   'bagging_freq': 0,
+   'lambda_l1': 0.0,
+   'lambda_l2': 0.0,
+}
+
+# non-default values of these will influence model name
+RELEVANT = {
+   'min_data': 'min',
+   'max_bin': 'max',
+   'feature_fraction': 'ff',
+   'bagging_fraction': 'bf',
+   'bagging_freq': 'sf',
+   'lambda_l1': '1l',
+   'lambda_l2': '2l',
 }
 
 class LightGBM(Learner):
@@ -32,7 +51,15 @@ class LightGBM(Learner):
       return "LightGBM"
 
    def desc(self):
-      return "lgb-t%(num_round)s-d%(max_depth)s-l%(num_leaves)s-e%(learning_rate).2f" % self.params
+      d = "lgb-t%(num_round)s-d%(max_depth)s-l%(num_leaves)s-e%(learning_rate)s" % self.params
+      for p in RELEVANT:
+         if self.params[p] != DEFAULTS[p]:
+            d += "-%s%s" % (RELEVANT[p], self.params[p])
+      #if self.params["min_data"] != DEFAULTS["min_data"]:
+      #   d += "-min%(min_data)d" % self.params
+      #if self.params["max_bin"] != DEFAULTS["max_bin"]:
+      #   d += "-max%(max_bin)d" % self.params
+      return d
 
    def __repr__(self):
       args = ["%s=%s"%(x,self.params[x]) for x in self.params]
@@ -52,28 +79,26 @@ class LightGBM(Learner):
       self.stats["model.last.loss"] = [losses[last], last]
       self.stats["model.best.loss"] = [losses[best], best]
 
-   def train(self, f_in, f_mod, atstart=None, atiter=None, atfinish=None):
-      logger.debug("- loading training data %s" % f_in)
+   def train(self, f_in, f_mod=None, init_model=None, handlers=None):
+      (atstart, atiter, atfinish) = handlers if handlers else (None,None,None)
       (xs, ys) = trains.load(f_in)
-      dtrain = lgb.Dataset(xs, label=ys)
-      dtrain.construct()
+      dtrain = lgb.Dataset(xs, label=ys, free_raw_data=(init_model is None))
+      #dtrain.construct()
       pos = sum(ys)
       neg = len(ys) - pos
-      self.stats["train.count"] = len(ys)
-      self.stats["train.pos.count"] = int(pos)
-      self.stats["train.neg.count"] = int(neg)
+      self.stats["train.counts"] = (len(ys), int(pos), int(neg))
       self.params["scale_pos_weight"] = (neg/pos)
+      #self.params["is_unbalance"] = True
 
-      callbacks = [lambda _: atiter()] if atiter else None
-      logger.debug("- building lgb model %s" % f_mod)
-      logger.debug(log.data("- learning parameters:", self.params))
+      callbacks = [lambda _: atiter(), lgb.log_evaluation(1)] if atiter else None
       if atstart: atstart()
-      bst = lgb.train(self.params, dtrain, valid_sets=[dtrain], callbacks=callbacks)
+      #eta = self.params["learning_rate"]
+      bst = lgb.train(self.params, dtrain, valid_sets=[dtrain], init_model=init_model, callbacks=callbacks) #, learning_rates=lambda iter: 0.1*(0.95**iter))
       if atfinish: atfinish()
-      logger.debug("- saving model %s" % f_mod)
-      bst.save_model(f_mod)
-      bst.free_dataset()
-      bst.free_network()
+      if f_mod:
+         bst.save_model(f_mod)
+         bst.free_dataset()
+         bst.free_network()
       return bst
 
    def predict(self, f_in, f_mod):

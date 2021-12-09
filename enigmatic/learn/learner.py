@@ -32,30 +32,32 @@ class Learner:
    def desc(self):
       return "default"
 
-   def train(self, f_in, f_mod, atstart=None, atiter=None, atfinish=None):
+   def train(self, f_in, f_mod, init_model=None, handlers=None):
       pass
 
    def readlog(self, f_log):
       return
 
-   def build(self, f_in, f_mod, f_log, options=[]):
+   def build(self, f_in, f_mod, f_log, options=[], init_model=None):
       def atfinish():
          bar.finish()
          bar.file.flush()
       # progress bar
-      if not "headless" in options:
+      if "headless" in options:
+         (bar, atstart, atiter, atfinish) = (None, None, None, None)
+      else:
          ProgressBar.file = None
          bar = ProgressBar("[%s]"%self.ext(), max=self.bar_round)
          atstart = bar.start
          atiter = bar.next
-      else:
-         logger.info("- building %s" % self.desc())
-         (bar, atstart, atiter, atfinish) = (None, None, None, None)
+         handlers = (atstart, atiter, atfinish)
+      logger.info("- building model %s" % f_mod)
+      logger.debug(log.data("- learning parameters:", self.params))
       # standard output redirect
       redir = redirect.start(f_log, bar)
       begin = time.time()
       try:
-         self.train(f_in, f_mod, atstart=atstart, atiter=atiter, atfinish=atfinish)
+         self.train(f_in, f_mod, init_model=init_model, handlers=handlers)
       except Exception as e:
          redirect.finish(*redir)
          raise e # raise after redirect so that stack trace is not lost
@@ -72,17 +74,28 @@ class Learner:
          json.dump(self.stats, f, indent=3, sort_keys=True)
       with open("%s-params.json"%f_log,"w") as f: 
          json.dump(self.params, f, indent=3, sort_keys=True)
-      logger.info(log.data("- training statistics: ", self.stats))
 
    def predict(self, f_in, f_mod):
       return []
 
    def accuracy(self, f_in, f_mod, ret=None):
+      def getacc(pairs):
+         if not pairs:
+            return 0
+         return sum([1 for (x,y) in pairs if int(x>0.5)==y]) / len(pairs)
+
       preds = list(self.predict(f_in, f_mod))
-      logger.debug("- predictions: %d", len(preds))
-      acc = sum([1 for (x,y) in preds if int(x>0.5)==y])
-      acc /= len(preds)
-      logger.debug("- accuracy: %f" % acc)
-      if ret is not None: ret["acc"] = acc
-      return acc
+      acc = getacc(preds)
+      pos = [(x,y) for (x,y) in preds if y==1]
+      posacc = getacc(pos)
+      neg = [(x,y) for (x,y) in preds if y==0]
+      negacc = getacc(neg)
+
+      if ret is not None: 
+         ret["acc"] = (acc, posacc, negacc)
+         ret["counts"] = (len(preds), len(pos), len(neg))
+      return (acc, posacc, negacc)
+
+   def refit(self, f_in, f_mod, f_log, options=[]):
+      logger.info("- skipped refit of %s with %s" % (f_mod, f_in))
 
