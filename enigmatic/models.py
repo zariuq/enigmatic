@@ -88,7 +88,7 @@ def build(learner, f_in=None, split=False, debug=[], options=[], **others):
      s_dir.symlink_to(Path(model))
 
    batchbuilds(f_in, f_mod, **others)
-   #statistics(f_in, f_mod, f_log, **others) # Possibly related to code in pyprove.  On hold. 
+   statistics(f_in, f_mod, f_log, **others) # Possibly related to code in pyprove.  On hold. 
    return new
 
 def statistics(f_in, f_mod, f_log, learner, split, debug, **others):
