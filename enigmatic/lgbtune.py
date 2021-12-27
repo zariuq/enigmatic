@@ -148,8 +148,8 @@ def train(
    timeout=None, 
    init_params=None, 
    usebar=True, 
-   min_leaves=256, 
-   max_leaves=32768
+   min_leaves=16, 
+   max_leaves=2048,
 ):
    (xs, ys) = trains.load(f_train)
    dtrain = lgb.Dataset(xs, label=ys)
@@ -198,29 +198,8 @@ def train(
    
    return best + (params, pos, neg)
 
-def lgbtune(
-   f_train, 
-   f_test, 
-   d_tmp="optuna-tmp", 
-   phases="l:b:m:r", 
-   iters=None, 
-   timeout=3600, 
-   init_params={},
-   min_leaves=256, 
-   max_leaves=32768
-):
-   (_, acc, f_mod, _, params, _, _) = train(
-      f_train, 
-      f_test, 
-      d_tmp, 
-      phases, 
-      iters, 
-      timeout, 
-      init_params, 
-      True, 
-      min_leaves, 
-      max_leaves
-   )
+def lgbtune(**args):
+   (_, acc, f_mod, _, params, _, _) = train(**args)
    logger.info("")
    logger.info("Best model params: %s" % str(params))
    logger.info("Best model accuracy: %s" % human.humanacc(acc))

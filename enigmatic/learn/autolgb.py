@@ -1,5 +1,6 @@
 import re, os, shutil
 import logging, json
+import math
 import lightgbm as lgb
 from .learner import Learner
 from .lgbooster import LightGBM
@@ -13,6 +14,8 @@ DEFAULTS = {
    "timeout": None,
    "init_params": None,
    "phases": "l:b:m",
+   "min_leaves": 16,
+   "max_leaves": 2048,
 }
 
 class AutoLgb(LightGBM):
@@ -32,9 +35,16 @@ class AutoLgb(LightGBM):
       return "AutoLgb"
 
    def desc(self):
-      def add(param, short):
-         return ("-%s%s" % (short, self.params[param])) if self.params[param] else ""
+      def add(param, short, prefix="-", val=None):
+         val = self.params[param] if not val else val
+         if self.params[param]:
+            return ("%s%s%s" % (prefix, short, val)) 
+         else:
+            return ""
       d = "autolgb" + add("iters", "i") + add("timeout", "t") + add("phases", "")
+      min_base = str(round(math.log2(self.params["min_leaves"])))
+      max_base = str(round(math.log2(self.params["max_leaves"])))
+      d += add("min_leaves", "", val=min_base) + add("max_leaves", "l", "", val=max_base) 
       return d
 
    def __repr__(self):
