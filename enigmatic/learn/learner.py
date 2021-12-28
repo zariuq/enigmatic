@@ -60,6 +60,7 @@ class Learner:
          bst = self.train(f_in, f_mod, init_model=init_model, handlers=handlers)
       except Exception as e:
          redirect.finish(*redir)
+         logger.error(str(e))
          raise e # raise after redirect so that stack trace is not lost
       end = time.time()
       # redirect back
