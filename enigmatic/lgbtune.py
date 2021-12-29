@@ -5,7 +5,7 @@ import optuna
 import lightgbm as lgb
 from pyprove import redirect, human
 from pyprove.bar import ProgressBar
-from enigmatic import trains
+from enigmatic import trains, models, enigmap, protos
 from enigmatic.learn import lgbooster
 
 logger = logging.getLogger(__name__)
@@ -111,11 +111,30 @@ def tune(check_fun, nick, iters, timeout, d_tmp, sampler=None, **args):
    study = optuna.create_study(direction='maximize', sampler=sampler)
    objective = lambda trial: check_fun(trial, d_tmp=d_tmp, **args)
    study.optimize(objective, n_trials=iters, timeout=timeout)
-   return study.best_trial
+   best = tuple(study.best_trial.user_attrs[x] for x in ["score", "acc", "model", "time"])
+   return (best, study.best_trial.params)
 
-def tune_leaves(min_leaves, max_leaves, **args):
+def tune_leaves_grid(min_leaves, max_leaves, **args):
    args = dict(args, min_leaves=min_leaves, max_leaves=max_leaves)
    min_base = round(2*math.log2(min_leaves))
+   max_base = round(2*math.log2(max_leaves))
+   values = list([round(2**(n/2)) for n in range(min_base, max_base+1)])
+   sampler = optuna.samplers.GridSampler({"num_leaves": values})
+   return tune(check_leaves, "leaves", sampler=sampler, **args)
+
+def tune_leaves_binary(min_leaves, max_leaves, **args):
+   args = dict(args, min_leaves=min_leaves, max_leaves=max_leaves)
+   #min_base = round(2*math.log2(min_leaves))
+   
+   leaves = min_leaves
+   number = 0
+   f_mod = os.path.join(d_tmp, "model%04d.lgb" % number)
+   barmsg = ("[trial %d]" % number) if usebar else None
+   (score, acc, dur) = model(params, dtrain, testd, f_mod, barmsg)
+
+   while score0 > score:
+      pass
+
    max_base = round(2*math.log2(max_leaves))
    values = list([round(2**(n/2)) for n in range(min_base, max_base+1)])
    sampler = optuna.samplers.GridSampler({"num_leaves": values})
@@ -133,7 +152,7 @@ def tune_regular(**args):
    return tune(check_regular, "regular", **args)
 
 PHASES = {
-   "l": tune_leaves,
+   "l": tune_leaves_grid,
    "b": tune_bagging,
    "r": tune_regular,
    "m": tune_min_data,
@@ -185,16 +204,13 @@ def train(
       best = (score, acc, f_mod, dur)
       logger.debug("- initial model: %s" % human.humanacc(acc)) 
    else:
-      best = (-1, None, None)
+      best = (-1, None, None, None)
 
    for phase in phases:
-      trial = PHASES[phase](params=params, **args)
-      if trial.user_attrs["score"] > best[0]:
-         best = tuple(trial.user_attrs[x] for x in ["score", "acc", "model", "time"])
-         params.update(trial.params)
-         #if "num_leaves_base" in params:
-         #   params["num_leaves"] = round(2**(params["num_leaves_base"]/2))
-         #   del params["num_leaves_base"]
+      (best0, params0) = PHASES[phase](params=params, **args)
+      if best0[0] > best[0]:
+         best = best0 
+         params.update(params0)
    
    return best + (params, pos, neg)
 
@@ -204,4 +220,25 @@ def lgbtune(**args):
    logger.info("Best model params: %s" % str(params))
    logger.info("Best model accuracy: %s" % human.humanacc(acc))
    logger.info("Best model file: %s" % f_mod)
+
+def build(dtrain, testd, params, **others):
+   model0 = models.name(**others)
+   logger.info("+ building model %s" % model0)
+   enigmap.build(**others)
+   new = protos.build(model0, **others)
+   f_mod = models.filename(**others)
+   os.system('mkdir -p "%s"' % os.path.dirname(f_mod))
+   (score, acc, dur) = model(params, dtrain, testd, f_mod, "[lgb]")
+   logger.debug("- model score: %s" % score) 
+   logger.debug("- model test accuracy: %s" % human.humanacc(acc)) 
+
+def load(**others):
+   f_train = trains.filename(part=0, **others)
+   f_test = trains.filename(part=0, f_name="test.in", **others)
+   logger.debug("- loading %s" % f_train)
+   (xs, ys) = trains.load(f_train)
+   dtrain = lgb.Dataset(xs, label=ys)
+   logger.debug("- loading %s" % f_test)
+   testd = trains.load(f_test)
+   return (dtrain, testd) 
 
