@@ -38,7 +38,7 @@ class Learner:
    def readlog(self, f_log):
       return
 
-   def build(self, f_in, f_mod, f_log, options=[], init_model=None):
+   def build(self, f_in, f_mod, f_log, options=[], init_model=None, f_test=None):
       def atfinish():
          bar.finish()
          bar.file.flush()
@@ -57,9 +57,10 @@ class Learner:
       redir = redirect.start(f_log, bar)
       begin = time.time()
       try:
-         self.train(f_in, f_mod, init_model=init_model, handlers=handlers)
+         bst = self.train(f_in, f_mod, init_model=init_model, handlers=handlers)
       except Exception as e:
          redirect.finish(*redir)
+         logger.error(str(e))
          raise e # raise after redirect so that stack trace is not lost
       end = time.time()
       # redirect back
@@ -74,6 +75,7 @@ class Learner:
          json.dump(self.stats, f, indent=3, sort_keys=True)
       with open("%s-params.json"%f_log,"w") as f: 
          json.dump(self.params, f, indent=3, sort_keys=True)
+      return bst
 
    def predict(self, f_in, f_mod):
       return []
